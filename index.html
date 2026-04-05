@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🌟 Number Magic — Ordering Numbers</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#1a0533,#2d0b5e);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:12px 8px 24px;}
+
+#stage{width:100%;max-width:880px;background:#fff9f0;border-radius:22px;overflow:hidden;position:relative;box-shadow:0 24px 70px rgba(0,0,0,0.7);display:flex;flex-direction:column;}
+
+/* floating bg numbers */
+.float-n{position:absolute;font-family:'Fredoka One',cursive;opacity:0.04;pointer-events:none;animation:float-up 13s linear infinite;color:#A29BFE;}
+@keyframes float-up{from{transform:translateY(110%) rotate(-12deg);}to{transform:translateY(-15%) rotate(12deg);}}
+
+.scene{display:none;flex-direction:column;flex:1;}
+.scene.active{display:flex;}
+.hband{width:100%;padding:13px 22px 11px;display:flex;flex-direction:column;flex-shrink:0;}
+.hband h1{font-family:'Fredoka One',cursive;font-size:clamp(15px,2.3vw,24px);color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.3);}
+.hband p{font-size:clamp(11px,1.2vw,13px);color:rgba(255,255,255,0.9);font-weight:700;margin-top:2px;}
+.content{display:flex;flex-direction:column;align-items:center;padding:12px 16px 14px;gap:11px;}
+
+/* ── MISS NUMBY PORTRAIT ── */
+.numby-row{display:flex;align-items:flex-start;gap:12px;width:100%;}
+.numby-face{flex-shrink:0;}
+.numby-face svg{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.2));}
+.speech-bub{
+  background:linear-gradient(135deg,#FFF8E8,#FFF0D0);
+  border:2.5px solid #FFD700; border-radius:6px 18px 18px 18px;
+  padding:13px 16px; font-size:clamp(12px,1.55vw,16px);
+  line-height:1.65; color:#2C1810; font-weight:700;
+  flex:1; min-height:58px;
+}
+.numby-label{font-family:'Fredoka One',cursive;font-size:13px;color:#8B5E00;text-align:center;margin-top:4px;background:linear-gradient(135deg,#FFD700,#FFA500);padding:2px 12px;border-radius:50px;}
+
+/* ── NUMBER TILES ── */
+.numbers-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;width:100%;}
+.num-tile{
+  width:68px;height:76px;border-radius:14px;
+  font-family:'Fredoka One',cursive;font-size:40px;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#fff; box-shadow:0 4px 14px rgba(0,0,0,0.18);
+  border:3px solid rgba(255,255,255,0.35); flex-shrink:0;
+  position:relative; transition:transform .2s,opacity .3s;
+  user-select:none;
+}
+.num-tile.crossed{
+  opacity:0.42;
+}
+.num-tile.crossed::after{
+  content:'';position:absolute;
+  top:50%;left:-5%;width:110%;height:5px;
+  background:#E8112D;border-radius:3px;
+  transform:translateY(-50%) rotate(-8deg);
+  box-shadow:0 1px 6px rgba(232,17,45,.5);
+}
+.num-tile.tappable{cursor:pointer;}
+.num-tile.tappable:hover{transform:scale(1.1);}
+.num-tile.wrong-shake{animation:shake .4s ease-in-out;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+/* ── ANSWER BOXES ── */
+.answer-row{display:flex;justify-content:center;align-items:flex-start;gap:10px;flex-wrap:wrap;width:100%;}
+.ans-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.ans-box{
+  width:68px;height:76px;border-radius:14px;
+  font-family:'Fredoka One',cursive;font-size:40px;
+  border:3px dashed #ADB5BD;background:#F8F9FA;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#2D3436;transition:all .4s cubic-bezier(.34,1.56,.64,1);
+  flex-shrink:0;
+}
+.ans-box.filled{
+  border-style:solid;border-color:#27AE60;
+  background:linear-gradient(145deg,#d4f5e2,#a8e8c4);
+  color:#155724;box-shadow:0 5px 16px rgba(40,167,69,0.28);
+  animation:drop-in .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes drop-in{from{transform:scale(1.35) translateY(-14px);opacity:0;}to{transform:scale(1);opacity:1;}}
+.ans-label{font-size:11px;font-weight:900;color:#999;}
+
+/* ── FINGER HINT ── */
+.finger-hint{
+  background:linear-gradient(135deg,#FFF3CD,#FFE082);
+  border:2px solid #FFD700;border-radius:14px;
+  padding:9px 16px;font-size:clamp(12px,1.4vw,14px);
+  font-weight:800;color:#5C3A00;text-align:center;width:100%;
+}
+
+/* ── DIRECTION BADGE ── */
+.dir-badge{
+  font-family:'Fredoka One',cursive;font-size:clamp(16px,2vw,22px);
+  padding:7px 20px;border-radius:50px;color:#fff;
+  box-shadow:0 4px 14px rgba(0,0,0,0.2);
+}
+
+/* ── STEP CARDS for demo ── */
+.step-card{background:#fff;border-radius:16px;border:3px solid #E0E0E0;padding:12px 16px;width:100%;box-shadow:0 3px 12px rgba(0,0,0,0.07);}
+.step-title{font-family:'Fredoka One',cursive;font-size:clamp(14px,1.8vw,18px);color:#333;margin-bottom:8px;}
+
+/* ── PROGRESS ── */
+#prog-wrap{width:100%;height:6px;background:rgba(0,0,0,0.1);flex-shrink:0;}
+#prog-fill{height:100%;background:linear-gradient(90deg,#A29BFE,#6C5CE7);width:0%;transition:width .5s;border-radius:0 4px 4px 0;}
+
+/* ── CONFETTI ── */
+.confetti-text{font-family:'Fredoka One',cursive;font-size:clamp(17px,2.4vw,28px);animation:rainbow 1.5s linear infinite;text-align:center;}
+@keyframes rainbow{0%{color:#A29BFE;}25%{color:#FFD700;}50%{color:#4ECDC4;}75%{color:#FF6B6B;}100%{color:#A29BFE;}}
+.cparticle{position:fixed;border-radius:2px;pointer-events:none;z-index:999;animation:cffall 3s ease-in forwards;}
+@keyframes cffall{0%{opacity:1;transform:translateY(-20px) rotate(0deg);}100%{opacity:0;transform:translateY(100vh) rotate(720deg);}}
+
+/* ── CONTROLS ── */
+#controls-bar{width:100%;max-width:880px;background:rgba(255,255,255,0.06);border-radius:0 0 16px 16px;padding:10px 16px 13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ctrl{padding:9px 20px;border-radius:50px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;border:none;cursor:pointer;transition:all .18s;box-shadow:0 3px 10px rgba(0,0,0,0.25);display:inline-flex;align-items:center;gap:5px;}
+.ctrl:hover{transform:translateY(-2px);filter:brightness(1.08);}
+.ctrl-play{background:linear-gradient(135deg,#A29BFE,#6C5CE7);color:#fff;}
+.ctrl-pause{background:linear-gradient(135deg,#FFC048,#E6A000);color:#fff;}
+.ctrl-mute{background:rgba(255,255,255,0.14);color:#fff;border:1.5px solid rgba(255,255,255,0.25);}
+#pdots{display:flex;gap:6px;align-items:center;margin-left:auto;}
+.sdot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.2);transition:all .3s;}
+.sdot.done{background:#27AE60;}.sdot.active{background:#FFD700;transform:scale(1.4);}
+.sdot-lbl{font-size:10px;font-weight:800;color:rgba(255,255,255,0.5);white-space:nowrap;}
+.vol-wave{display:flex;align-items:flex-end;gap:2px;height:18px;}
+.vb{width:3px;border-radius:2px;background:#A29BFE;height:4px;}
+.vol-wave.on .vb{animation:vw .5s ease-in-out infinite alternate;}
+.vol-wave.on .vb:nth-child(1){animation-delay:0s;}.vol-wave.on .vb:nth-child(2){animation-delay:.13s;}.vol-wave.on .vb:nth-child(3){animation-delay:.26s;}.vol-wave.on .vb:nth-child(4){animation-delay:.39s;}
+@keyframes vw{from{height:3px;}to{height:16px;}}
+
+/* Activity tappable tiles */
+.act-tile{
+  width:72px;height:80px;border-radius:14px;
+  font-family:'Fredoka One',cursive;font-size:42px;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#fff;cursor:pointer;user-select:none;
+  box-shadow:0 5px 16px rgba(0,0,0,0.2);
+  border:3px solid rgba(255,255,255,0.35);
+  transition:transform .2s,opacity .3s;
+  position:relative;
+}
+.act-tile:hover:not(.used){transform:scale(1.1);}
+.act-tile.used{opacity:0.4;cursor:default;}
+.act-tile.used::after{
+  content:'';position:absolute;top:50%;left:-5%;width:110%;height:5px;
+  background:#E8112D;border-radius:3px;
+  transform:translateY(-50%) rotate(-8deg);
+  box-shadow:0 1px 6px rgba(232,17,45,.5);
+}
+.act-tile.wrong-shake{animation:shake .4s ease-in-out;}
+
+/* feedback form */
+#fb-overlay{display:none;position:fixed;inset:0;background:rgba(10,6,30,0.88);z-index:200;align-items:center;justify-content:center;}
+#fb-overlay.open{display:flex;}
+#fb-box{background:#fff;border-radius:22px;padding:26px;width:min(94vw,480px);box-shadow:0 24px 60px rgba(0,0,0,0.55);max-height:90vh;overflow-y:auto;}
+#fb-box h2{font-family:'Fredoka One',cursive;font-size:21px;color:#6C5CE7;margin-bottom:4px;}
+.fb-sub{font-size:13px;color:#777;font-weight:600;margin-bottom:14px;}
+.fb-group{margin-bottom:14px;}
+.fb-group label{display:block;font-weight:800;color:#444;margin-bottom:5px;font-size:.9em;}
+.fb-group input,.fb-group select,.fb-group textarea{width:100%;padding:10px 13px;border:2px solid #EEE;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;transition:border-color .2s;}
+.fb-group input:focus,.fb-group select:focus,.fb-group textarea:focus{border-color:#A29BFE;}
+.fb-group textarea{height:72px;resize:none;}
+.fb-stars{display:flex;gap:8px;font-size:1.9em;cursor:pointer;margin-top:4px;}
+.fb-star{color:#ddd;transition:color .15s,transform .15s;user-select:none;}
+.fb-star:hover,.fb-star.on{color:#FFD700;}
+.fb-star:hover{transform:scale(1.2);}
+.fb-btns{display:flex;gap:9px;margin-top:14px;}
+#fb-send{flex:1;padding:11px;border-radius:50px;border:none;cursor:pointer;background:linear-gradient(135deg,#A29BFE,#6C5CE7);color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;}
+#fb-cancel{padding:11px 18px;border-radius:50px;border:2px solid #EEE;background:#fff;color:#aaa;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;}
+#fb-thanks{display:none;text-align:center;padding:14px 0;}
+#fb-thanks .ck{font-size:52px;}
+#fb-thanks p{font-size:14px;font-weight:800;color:#27AE60;margin-top:7px;}
+
+/* bg colours per scene */
+.bg-intro{background:linear-gradient(155deg,#fff9f0,#f5f0ff);}
+.bg-demo{background:linear-gradient(155deg,#fff9f0,#fff3e0);}
+.bg-act{background:linear-gradient(155deg,#f0fff4,#f0f4ff);}
+.bg-done{background:linear-gradient(155deg,#fff9f0,#fffff5);}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <!-- floating bg -->
+  <div class="float-n" style="font-size:100px;left:4%;animation-delay:0s;animation-duration:12s;">9</div>
+  <div class="float-n" style="font-size:80px;left:24%;animation-delay:3.5s;animation-duration:10s;">3</div>
+  <div class="float-n" style="font-size:110px;left:56%;animation-delay:6s;animation-duration:14s;">7</div>
+  <div class="float-n" style="font-size:75px;left:78%;animation-delay:1.5s;animation-duration:11s;">5</div>
+
+  <!-- ══ SCENE 0: INTRO ══ -->
+  <div class="scene active bg-intro" id="sc0">
+    <div class="hband" style="background:linear-gradient(135deg,#6C5CE7,#A29BFE);">
+      <h1>🌟 Number Magic — Ordering Numbers!</h1>
+      <p>Miss Numby · Grade 1 Mathematics · Balmoral Primary</p>
+    </div>
+    <div class="content">
+      <div class="numby-row" id="nr0">
+        <div class="numby-face" id="nf0"></div>
+        <div>
+          <div class="numby-label">Miss Numby</div>
+          <div class="speech-bub" id="bb0">Getting ready…</div>
+        </div>
+      </div>
+      <div class="numbers-row" id="intro-nums"></div>
+    </div>
+    <div id="prog-wrap"><div id="prog-fill"></div></div>
+  </div>
+
+  <!-- ══ SCENE 1: MEET THE NUMBERS ══ -->
+  <div class="scene bg-demo" id="sc1">
+    <div class="hband" style="background:linear-gradient(135deg,#6C5CE7,#A29BFE);">
+      <h1>Step 1 — Meet our 4 numbers! 🔢</h1>
+      <p>Say each number out loud!</p>
+    </div>
+    <div class="content">
+      <div class="numby-row"><div class="numby-face" id="nf1"></div><div><div class="numby-label">Miss Numby</div><div class="speech-bub" id="bb1"></div></div></div>
+      <div class="numbers-row" id="meet-nums"></div>
+    </div>
+  </div>
+
+  <!-- ══ SCENE 2: FINGER COUNTING ══ -->
+  <div class="scene bg-demo" id="sc2">
+    <div class="hband" style="background:linear-gradient(135deg,#E67E22,#F39C12);">
+      <h1>Step 2 — Count on your fingers! 🖐️</h1>
+      <p>The most fingers = the BIGGEST number!</p>
+    </div>
+    <div class="content">
+      <div class="numby-row"><div class="numby-face" id="nf2"></div><div><div class="numby-label">Miss Numby</div><div class="speech-bub" id="bb2"></div></div></div>
+      <div class="finger-hint">🖐️ Make a fist! Lift one finger for each number you count.<br>Which number makes you lift the MOST fingers? That is the BIGGEST!</div>
+      <div class="numbers-row" id="finger-nums"></div>
+    </div>
+  </div>
+
+  <!-- ══ SCENE 3: BIGGEST TO SMALLEST DEMO ══ -->
+  <div class="scene bg-demo" id="sc3">
+    <div class="hband" style="background:linear-gradient(135deg,#C0392B,#E74C3C);">
+      <h1>⬇️ Biggest to Smallest: 5, 9, 2, 7</h1>
+      <p>Watch how we pick the biggest first each time!</p>
+    </div>
+    <div class="content">
+      <div class="numby-row"><div class="numby-face" id="nf3"></div><div><div class="numby-label">Miss Numby</div><div class="speech-bub" id="bb3"></div></div></div>
+      <div class="dir-badge" style="background:linear-gradient(135deg,#C0392B,#E74C3C);">⬇️ Biggest → Smallest</div>
+      <div class="numbers-row" id="demo-b2s-nums"></div>
+      <div class="answer-row" id="demo-b2s-boxes"></div>
+    </div>
+  </div>
+
+  <!-- ══ SCENE 4: SMALLEST TO BIGGEST DEMO ══ -->
+  <div class="scene bg-demo" id="sc4">
+    <div class="hband" style="background:linear-gradient(135deg,#1565C0,#1976D2);">
+      <h1>⬆️ Smallest to Biggest: 8, 1, 6, 3</h1>
+      <p>Different numbers — find the SMALLEST first!</p>
+    </div>
+    <div class="content">
+      <div class="numby-row"><div class="numby-face" id="nf4"></div><div><div class="numby-label">Miss Numby</div><div class="speech-bub" id="bb4"></div></div></div>
+      <div class="dir-badge" style="background:linear-gradient(135deg,#1565C0,#1976D2);">⬆️ Smallest → Biggest</div>
+      <div class="numbers-row" id="demo-s2b-nums"></div>
+      <div class="answer-row" id="demo-s2b-boxes"></div>
+    </div>
+  </div>
+
+  <!-- ══ SCENE 5: ACTIVITIES ══ -->
+  <div class="scene bg-act" id="sc5">
+    <div class="hband" style="background:linear-gradient(135deg,#1B5E20,#2E7D32);">
+      <h1>🎯 Your Turn! Order the Numbers!</h1>
+      <p>Tap the numbers in the correct order — use your fingers to count!</p>
+    </div>
+    <div class="content">
+      <div class="numby-row"><div class="numby-face" id="nf5"></div><div><div class="numby-label">Miss Numby</div><div class="speech-bub" id="bb5"></div></div></div>
+      <div id="act-container" style="width:100%;"></div>
+    </div>
+  </div>
+
+  <!-- ══ SCENE 6: WELL DONE ══ -->
+  <div class="scene bg-done" id="sc6">
+    <div class="hband" style="background:linear-gradient(135deg,#6C5CE7,#A29BFE);">
+      <h1>🏆 Absolutely Fantastic Work!</h1>
+    </div>
+    <div class="content">
+      <div class="numby-row"><div class="numby-face" id="nf6"></div><div><div class="numby-label">Miss Numby</div><div class="speech-bub" id="bb6"></div></div></div>
+      <div style="font-size:50px;animation:spin-in .6s cubic-bezier(.34,1.56,.64,1);">🎉</div>
+      <div class="confetti-text">YOU ARE A NUMBER ORDERING SUPERSTAR! 🌟</div>
+      <div style="background:#fff;border-radius:14px;padding:13px 16px;border:2.5px solid #A29BFE;width:100%;max-width:620px;">
+        <div style="font-size:12px;font-weight:900;color:#6C5CE7;margin-bottom:5px;">🏠 Important reminder for Mum and Dad:</div>
+        <div style="font-size:13px;color:#333;font-weight:700;line-height:1.7;">
+          Please keep practising this concept with your child until they can order numbers confidently on their own. Here are easy ways to practise at home:<br><br>
+          🪨 <strong>Stones or bottle tops</strong> — make 4 groups of objects. Ask: "Which group has the most?"<br>
+          🖐️ <strong>Finger counting game</strong> — say a number, your child holds up that many fingers. Do all 4 numbers, then order them.<br>
+          🃏 <strong>Number cards</strong> — write 0–9 on small pieces of paper. Pick 4. Order them both ways!<br><br>
+          💡 <em>If your child struggles, always go back to counting fingers first. Fingers make numbers real!</em>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls-bar">
+  <button class="ctrl ctrl-play"  id="btn-start"  onclick="startVideo()">▶ Play Lesson</button>
+  <button class="ctrl ctrl-pause" id="btn-pause"  onclick="togglePause()" style="display:none;">⏸ Pause</button>
+  <button class="ctrl ctrl-mute"  id="btn-mute"   onclick="toggleMute()">🔊</button>
+  <div class="vol-wave" id="vwave"><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div></div>
+  <div id="pdots">
+    <span class="sdot-lbl">Lesson:</span>
+    <div class="sdot active" id="d0"></div><div class="sdot" id="d1"></div><div class="sdot" id="d2"></div>
+    <div class="sdot" id="d3"></div><div class="sdot" id="d4"></div><div class="sdot" id="d5"></div><div class="sdot" id="d6"></div>
+  </div>
+  <button class="ctrl" id="btn-fb"     onclick="openFB()"    style="background:linear-gradient(135deg,#A29BFE,#6C5CE7);color:#fff;display:none;">📋 Feedback</button>
+  <button class="ctrl" id="btn-replay" onclick="replayVideo()" style="background:linear-gradient(135deg,#27AE60,#1E8449);color:#fff;display:none;">🔄 Play Again</button>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div id="fb-overlay">
+  <div id="fb-box">
+    <h2>📋 Parent Feedback for the Teacher</h2>
+    <div class="fb-sub">Please let the teacher know how your child did with ordering numbers today!</div>
+    <div class="fb-group"><label>Child's Name</label><input type="text" id="fb-child" placeholder="Child's full name"/></div>
+    <div class="fb-group"><label>Parent / Guardian Name</label><input type="text" id="fb-parent" placeholder="Your name"/></div>
+    <div class="fb-group"><label>Date Completed</label><input type="date" id="fb-date"/></div>
+    <div class="fb-group"><label>Lesson Completion</label>
+      <select id="fb-completion">
+        <option value="">Select…</option>
+        <option value="full">✅ Completed the full lesson</option>
+        <option value="paused">⏸ Completed with many pauses</option>
+        <option value="retry">🔄 Did not complete — will retry</option>
+      </select>
+    </div>
+    <div class="fb-group">
+      <label>How well did your child understand ordering numbers? ⭐</label>
+      <div class="fb-stars" id="fbstars">
+        <span class="fb-star" data-v="1">★</span><span class="fb-star" data-v="2">★</span>
+        <span class="fb-star" data-v="3">★</span><span class="fb-star" data-v="4">★</span><span class="fb-star" data-v="5">★</span>
+      </div>
+    </div>
+    <div class="fb-group"><label>Did your child use fingers to count?</label>
+      <select id="fb-strategy">
+        <option value="">Select…</option>
+        <option value="yes">✨ Yes — used fingers independently</option>
+        <option value="prompted">👍 Used fingers when prompted</option>
+        <option value="no">🤔 Did not use fingers</option>
+        <option value="unsure">❓ Not sure</option>
+      </select>
+    </div>
+    <div class="fb-group"><label>Comments or Questions for the Teacher</label>
+      <textarea id="fb-note" placeholder="Share any observations or questions…"></textarea>
+    </div>
+    <div class="fb-btns">
+      <button id="fb-cancel" onclick="closeFB()">Cancel</button>
+      <button id="fb-send"   onclick="sendFB()">📤 Submit Feedback</button>
+    </div>
+    <div id="fb-thanks"><div class="ck">✅</div><p>Feedback sent! Thank you! 💕</p></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// MISS NUMBY FACE SVG
+// ══════════════════════════════════════════════════════
+function numbyFaceSVG(talking=false, size=58){
+  const mouthPath=talking
+    ? `<!-- open mouth -->
+       <path d="M35 67 Q50 80 65 67" stroke="#C06040" stroke-width="2.5" fill="#8B3010" stroke-linecap="round"/>
+       <ellipse cx="50" cy="73" rx="11" ry="7" fill="#7A2800"/>
+       <ellipse cx="50" cy="77" rx="7" ry="4" fill="#FF8FA3" opacity=".85"/>`
+    : `<!-- smile with teeth -->
+       <path d="M35 67 Q50 80 65 67" stroke="#C06040" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+       <path d="M37 68 Q50 77 63 68" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- soft bg circle -->
+  <circle cx="50" cy="50" r="48" fill="#FFF0F5"/>
+
+  <!-- ── HAIR — loose waves swept to one side ── -->
+  <!-- main hair mass behind face -->
+  <ellipse cx="50" cy="36" rx="37" ry="34" fill="#C8501A"/>
+  <!-- right side sweep falling over shoulder -->
+  <path d="M72 30 Q90 40 88 68 Q86 82 76 88 Q68 72 66 56 Q68 42 72 30Z" fill="#C8501A"/>
+  <!-- left side shorter -->
+  <path d="M28 30 Q12 42 14 62 Q16 72 22 78 Q30 66 32 50 Q30 40 28 30Z" fill="#C8501A"/>
+  <!-- hair highlights / depth -->
+  <path d="M72 30 Q84 44 82 64" stroke="#E06828" stroke-width="4" fill="none" opacity=".45" stroke-linecap="round"/>
+  <path d="M28 30 Q16 46 18 62" stroke="#A03810" stroke-width="3" fill="none" opacity=".35" stroke-linecap="round"/>
+  <!-- fringe / face-framing tendrils -->
+  <path d="M32 28 Q36 18 44 20 Q42 28 38 34" fill="#C8501A"/>
+  <path d="M68 28 Q64 18 56 20 Q58 28 62 34" fill="#C8501A"/>
+
+  <!-- ── FACE ── -->
+  <ellipse cx="50" cy="56" rx="29" ry="33" fill="#FAAC78"/>
+
+  <!-- ── EARS ── -->
+  <ellipse cx="22" cy="56" rx="7" ry="9" fill="#FAAC78"/>
+  <ellipse cx="22" cy="56" rx="4" ry="5.5" fill="#E8956A" opacity=".5"/>
+  <ellipse cx="78" cy="56" rx="7" ry="9" fill="#FAAC78"/>
+  <ellipse cx="78" cy="56" rx="4" ry="5.5" fill="#E8956A" opacity=".5"/>
+  <!-- small stud earrings -->
+  <circle cx="22" cy="62" r="3.5" fill="#A29BFE"/>
+  <circle cx="78" cy="62" r="3.5" fill="#A29BFE"/>
+
+  <!-- ── EYEBROWS — defined arched ── -->
+  <path d="M30 38 Q39 31 48 35" stroke="#7B3010" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M52 35 Q61 31 70 38" stroke="#7B3010" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- ── EYES — larger, expressive ── -->
+  <!-- whites -->
+  <ellipse cx="37" cy="49" rx="10" ry="11" fill="white"/>
+  <ellipse cx="63" cy="49" rx="10" ry="11" fill="white"/>
+  <!-- irises — bright brown with warmth -->
+  <circle cx="37" cy="50" r="7" fill="#8B4513"/>
+  <circle cx="63" cy="50" r="7" fill="#8B4513"/>
+  <!-- pupils -->
+  <circle cx="37" cy="50" r="4.5" fill="#1A0800"/>
+  <circle cx="63" cy="50" r="4.5" fill="#1A0800"/>
+  <!-- shine -->
+  <circle cx="39.5" cy="47.5" r="2.5" fill="white"/>
+  <circle cx="65.5" cy="47.5" r="2.5" fill="white"/>
+  <circle cx="35" cy="53" r="1.2" fill="white" opacity=".6"/>
+  <circle cx="61" cy="53" r="1.2" fill="white" opacity=".6"/>
+  <!-- upper lash line -->
+  <path d="M27 42 Q37 35 47 42" stroke="#1A0800" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M53 42 Q63 35 73 42" stroke="#1A0800" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- lash flicks -->
+  <line x1="28" y1="42" x2="24" y2="38" stroke="#1A0800" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="34" y1="38" x2="32" y2="33" stroke="#1A0800" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="72" y1="42" x2="76" y2="38" stroke="#1A0800" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="66" y1="38" x2="68" y2="33" stroke="#1A0800" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- lower lash hint -->
+  <path d="M27 54 Q37 58 47 54" stroke="#1A0800" stroke-width="1" fill="none" opacity=".3"/>
+  <path d="M53 54 Q63 58 73 54" stroke="#1A0800" stroke-width="1" fill="none" opacity=".3"/>
+
+  <!-- ── NOSE — small, cute button ── -->
+  <ellipse cx="50" cy="62" rx="4.5" ry="3" fill="#E8855A"/>
+  <circle cx="47" cy="63" r="2.2" fill="#D06840" opacity=".4"/>
+  <circle cx="53" cy="63" r="2.2" fill="#D06840" opacity=".4"/>
+
+  <!-- ── CHEEKS ── -->
+  <ellipse cx="26" cy="65" rx="9" ry="6" fill="#FF9AA2" opacity=".42"/>
+  <ellipse cx="74" cy="65" rx="9" ry="6" fill="#FF9AA2" opacity=".42"/>
+
+  <!-- ── FRECKLES ── -->
+  <circle cx="34" cy="61" r="1.8" fill="#C87050" opacity=".35"/>
+  <circle cx="29" cy="65" r="1.4" fill="#C87050" opacity=".3"/>
+  <circle cx="71" cy="61" r="1.8" fill="#C87050" opacity=".35"/>
+  <circle cx="66" cy="65" r="1.4" fill="#C87050" opacity=".3"/>
+
+  <!-- ── MOUTH ── -->
+  ${mouthPath}
+
+  <!-- lip gloss highlight -->
+  <ellipse cx="50" cy="68" rx="6" ry="2" fill="white" opacity=".25"/>
+
+  </svg>`;
+}
+
+function injectFaces(){
+  for(let i=0;i<=6;i++){
+    const el=document.getElementById('nf'+i);
+    if(el) el.innerHTML=numbyFaceSVG(false,58);
+  }
+}
+
+// Lip sync
+let lipTimer=null;
+function startLip(scIdx){
+  stopLip();
+  let s=false;
+  const el=document.getElementById('nf'+scIdx);
+  if(el) el.innerHTML=numbyFaceSVG(true,58);
+  lipTimer=setInterval(()=>{
+    s=!s;
+    const e=document.getElementById('nf'+scIdx);
+    if(e) e.innerHTML=numbyFaceSVG(s,58);
+  },135);
+}
+function stopLip(){
+  if(lipTimer){clearInterval(lipTimer);lipTimer=null;}
+}
+function closeMouth(scIdx){
+  stopLip();
+  const el=document.getElementById('nf'+scIdx);
+  if(el) el.innerHTML=numbyFaceSVG(false,58);
+}
+
+// ══════════════════════════════════════════════════════
+// AUDIO
+// ══════════════════════════════════════════════════════
+function beep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='square';o.frequency.value=380;
+    g.gain.setValueAtTime(.14,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.3);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+.3);
+  }catch(e){}
+}
+function ding(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [523,659,784].forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;o.type='triangle';
+      g.gain.setValueAtTime(.12,ctx.currentTime+i*.12);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+i*.12+.4);
+      o.start(ctx.currentTime+i*.12);o.stop(ctx.currentTime+i*.12+.4);
+    });
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════
+// SPEECH — bulletproof with unlock + 50ms Android fix
+// ══════════════════════════════════════════════════════
+let cachedVoices=[];
+let speechReady=false;
+function unlockSpeech(){
+  if(speechReady||!window.speechSynthesis) return;
+  speechReady=true;
+  cachedVoices=window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged=()=>{ cachedVoices=window.speechSynthesis.getVoices(); };
+  const u=new SpeechSynthesisUtterance(' ');
+  u.volume=0;u.rate=2;
+  window.speechSynthesis.speak(u);
+}
+function pickVoice(){
+  const vs=cachedVoices.length ? cachedVoices : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
+  const want=['Samantha','Karen','Moira','Tessa','Fiona','Victoria','Google UK English Female','Microsoft Zira'];
+  for(const nm of want){ const f=vs.find(x=>x.name.includes(nm)); if(f) return f; }
+  return vs.find(x=>x.lang.startsWith('en')&&x.name.toLowerCase().includes('female'))
+      || vs.find(x=>x.lang.startsWith('en'))
+      || vs[0] || null;
+}
+
+let muted=false,paused=false,playing=false,currentSc=0;
+let bTimer=null,starRating=0;
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+async function waitPause(){while(paused)await delay(100);}
+
+function speak(text,scIdx){
+  return new Promise(resolve=>{
+    setBubble(scIdx,text);
+    startLip(scIdx);
+    const vw=document.getElementById('vwave'); if(vw) vw.classList.add('on');
+    function finish(){
+      stopLip(); closeMouth(scIdx);
+      if(vw) vw.classList.remove('on');
+      resolve();
+    }
+    if(muted||!window.speechSynthesis){ setTimeout(finish,text.split(' ').length*300+500); return; }
+    window.speechSynthesis.cancel();
+    setTimeout(()=>{
+      const u=new SpeechSynthesisUtterance(text);
+      u.rate=0.82; u.pitch=1.25; u.volume=1;
+      const v=pickVoice(); if(v) u.voice=v;
+      const safety=setTimeout(finish, Math.max(4000,text.split(' ').length*650));
+      u.onend=()=>{clearTimeout(safety);finish();};
+      u.onerror=()=>{clearTimeout(safety);finish();};
+      window.speechSynthesis.speak(u);
+    },50);
+  });
+}
+function stopSpeech(){
+  stopLip();
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  const vw=document.getElementById('vwave'); if(vw) vw.classList.remove('on');
+}
+function setBubble(idx,text){
+  const el=document.getElementById('bb'+idx); if(!el) return;
+  el.innerHTML=''; const words=text.split(' '); let i=0;
+  if(bTimer) clearInterval(bTimer);
+  const pace=Math.max(48,(text.length*48)/words.length);
+  bTimer=setInterval(()=>{
+    if(i<words.length){ el.innerHTML=words.slice(0,i+1).join(' ')+'<span style="display:inline-block;width:2px;height:14px;background:#A29BFE;vertical-align:middle;margin-left:2px;"></span>'; i++; }
+    else{ clearInterval(bTimer); el.innerHTML=text; }
+  },pace);
+}
+
+// ══════════════════════════════════════════════════════
+// SCENE MANAGEMENT
+// ══════════════════════════════════════════════════════
+function goScene(idx){
+  document.querySelectorAll('.scene').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const el=document.getElementById('sc'+idx); if(el){el.classList.add('active');el.style.display='flex';}
+  currentSc=idx;
+  for(let i=0;i<7;i++){const d=document.getElementById('d'+i);if(!d)continue;d.classList.remove('active','done');if(i<idx)d.classList.add('done');else if(i===idx)d.classList.add('active');}
+  const pf=document.getElementById('prog-fill'); if(pf) pf.style.width=((idx/6)*100)+'%';
+}
+
+// ══════════════════════════════════════════════════════
+// CONTROLS
+// ══════════════════════════════════════════════════════
+function togglePause(){
+  paused=!paused;
+  const btn=document.getElementById('btn-pause');
+  if(paused){
+    btn.textContent='▶ Resume';
+    if(window.speechSynthesis) window.speechSynthesis.pause();
+    stopLip();
+  } else {
+    btn.textContent='⏸ Pause';
+    if(window.speechSynthesis) window.speechSynthesis.resume();
+  }
+}
+function toggleMute(){
+  muted=!muted;
+  document.getElementById('btn-mute').textContent=muted?'🔇':'🔊';
+  if(muted) stopSpeech();
+}
+
+// ══════════════════════════════════════════════════════
+// TILE COLOUR HELPER
+// ══════════════════════════════════════════════════════
+const NUM_COLORS=['#E74C3C','#27AE60','#2980B9','#F39C12','#9B59B6','#E67E22','#1ABC9C','#8E44AD','#D35400','#1565C0'];
+function colorFor(n){ return NUM_COLORS[(n-1)%NUM_COLORS.length]; }
+
+// ══════════════════════════════════════════════════════
+// BUILD STATIC NUMBER TILES
+// ══════════════════════════════════════════════════════
+function makeTile(n,crossed=false){
+  const d=document.createElement('div');
+  d.className='num-tile'+(crossed?' crossed':'');
+  d.style.background=`linear-gradient(145deg,${colorFor(n)},${colorFor(n)}bb)`;
+  d.textContent=n;
+  return d;
+}
+function makeBoxes(filled=[]){
+  const row=document.createElement('div'); row.className='answer-row';
+  const labels=['1st','2nd','3rd','4th'];
+  for(let i=0;i<4;i++){
+    const w=document.createElement('div'); w.className='ans-wrap';
+    const b=document.createElement('div'); b.className='ans-box';
+    if(filled[i]!==undefined){
+      b.textContent=filled[i]; b.classList.add('filled');
+    }
+    const lbl=document.createElement('div'); lbl.className='ans-label'; lbl.textContent=labels[i];
+    w.appendChild(b); w.appendChild(lbl); row.appendChild(w);
+  }
+  return row;
+}
+
+// ══════════════════════════════════════════════════════
+// DEMO SCENE HELPERS
+// ══════════════════════════════════════════════════════
+function buildDemoNums(containerId, nums, crossed=[]){
+  const c=document.getElementById(containerId); if(!c)return; c.innerHTML='';
+  nums.forEach(n=>{
+    const t=makeTile(n, crossed.includes(n));
+    c.appendChild(t);
+  });
+}
+function buildDemoBoxes(containerId, filled=[]){
+  const c=document.getElementById(containerId); if(!c)return; c.innerHTML='';
+  c.appendChild(makeBoxes(filled));
+}
+
+// ══════════════════════════════════════════════════════
+// SCENE FUNCTIONS
+// ══════════════════════════════════════════════════════
+async function sc0(){
+  goScene(0); await delay(300);
+  // Build intro number display
+  const ic=document.getElementById('intro-nums'); ic.innerHTML='';
+  [9,7,5,2].forEach(n=>{ ic.appendChild(makeTile(n)); });
+  await speak(`Hello, beautiful girl! I am Miss Numby! Today we learn to put numbers in ORDER. We are going to learn to order from biggest to smallest, AND from smallest to biggest! Are you ready? Let us go!`,0);
+}
+
+async function sc1(){
+  goScene(1); await delay(300);
+  // Numbers shown scrambled — not in correct order
+  buildDemoNums('meet-nums',[5,9,2,7]);
+  await speak(`Look at our four numbers today: 5, 9, 2, and 7. They are all mixed up! Point to each number as you say it with me! Five... Nine... Two... Seven! Great job!`,1);
+  await delay(600); await waitPause();
+  await speak(`These are the numbers we are going to put in order today. Say them again: Five, Nine, Two, Seven!`,1);
+}
+
+async function sc2(){
+  goScene(2); await delay(300);
+  buildDemoNums('finger-nums',[5,9,2,7]);
+  await speak(`Now we are going to count each number on our fingers! Make a tight fist. Now lift one finger at a time as you count. Which number makes you lift the MOST fingers? That number is the BIGGEST!`,2);
+  await delay(600); await waitPause();
+  await speak(`Try it now! Count five on your fingers... now nine... now two... now seven. Did you feel it? Nine needs the MOST fingers! Nine is our biggest number!`,2);
+}
+
+async function sc3(){
+  goScene(3); await delay(300);
+  // Numbers shown SCRAMBLED — 5, 9, 2, 7 — NOT in correct order
+  buildDemoNums('demo-b2s-nums',[5,9,2,7]);
+  buildDemoBoxes('demo-b2s-boxes',[]);
+  await speak(`Look at these four numbers: 5, 9, 2, and 7. They are all mixed up! Let us order them from BIGGEST to smallest. We always find the biggest number first!`,3);
+  await delay(600); await waitPause();
+
+  await speak(`Count on your fingers. Nine needs the most fingers! So nine is the biggest. Nine goes into the first box!`,3);
+  await delay(400);
+  buildDemoNums('demo-b2s-nums',[5,9,2,7],[9]);
+  buildDemoBoxes('demo-b2s-boxes',[9]);
+  await delay(600); await waitPause();
+
+  await speak(`Nine is crossed off! Now we have 5, 2, and 7. Which is the biggest now? Count on your fingers. Seven! Seven needs more fingers than five or two! Seven goes in box 2!`,3);
+  await delay(400);
+  buildDemoNums('demo-b2s-nums',[5,9,2,7],[9,7]);
+  buildDemoBoxes('demo-b2s-boxes',[9,7]);
+  await delay(600); await waitPause();
+
+  await speak(`Seven is crossed off! Now we have 5 and 2. Five fingers is more than 2 fingers! Five goes in box 3!`,3);
+  await delay(400);
+  buildDemoNums('demo-b2s-nums',[5,9,2,7],[9,7,5]);
+  buildDemoBoxes('demo-b2s-boxes',[9,7,5]);
+  await delay(600); await waitPause();
+
+  await speak(`And two is the last one! Two goes in box 4. The order from biggest to smallest is: Nine, Seven, Five, Two! Say it with me: Nine... Seven... Five... Two! Brilliant!`,3);
+  await delay(400);
+  buildDemoNums('demo-b2s-nums',[5,9,2,7],[9,7,5,2]);
+  buildDemoBoxes('demo-b2s-boxes',[9,7,5,2]);
+  await delay(400); await waitPause();
+  await speak(`Do you see how we always crossed off the biggest each time? Well done!`,3);
+}
+
+async function sc4(){
+  goScene(4); await delay(300);
+  // DIFFERENT numbers, shown SCRAMBLED — 8, 1, 6, 3 — NOT in correct order
+  buildDemoNums('demo-s2b-nums',[8,1,6,3]);
+  buildDemoBoxes('demo-s2b-boxes',[]);
+  await speak(`Now we use DIFFERENT numbers! Look: 8, 1, 6, and 3. They are all mixed up! This time we order from SMALLEST to biggest. We find the number that needs the FEWEST fingers first!`,4);
+  await delay(600); await waitPause();
+
+  await speak(`Count on your fingers. One only needs 1 finger — the fewest of all! So one is the smallest. One goes in box 1!`,4);
+  await delay(400);
+  buildDemoNums('demo-s2b-nums',[8,1,6,3],[1]);
+  buildDemoBoxes('demo-s2b-boxes',[1]);
+  await delay(600); await waitPause();
+
+  await speak(`One is crossed off! Now 8, 6, and 3 are left. Which needs the fewest fingers now? Three! Three fingers is fewer than six or eight! Three goes in box 2!`,4);
+  await delay(400);
+  buildDemoNums('demo-s2b-nums',[8,1,6,3],[1,3]);
+  buildDemoBoxes('demo-s2b-boxes',[1,3]);
+  await delay(600); await waitPause();
+
+  await speak(`Three is crossed off! Eight and six are left. Six needs fewer fingers than eight. Six goes in box 3!`,4);
+  await delay(400);
+  buildDemoNums('demo-s2b-nums',[8,1,6,3],[1,3,6]);
+  buildDemoBoxes('demo-s2b-boxes',[1,3,6]);
+  await delay(600); await waitPause();
+
+  await speak(`And eight goes in box 4! The order from smallest to biggest is: One, Three, Six, Eight! Say it with me: One... Three... Six... Eight! Fantastic!`,4);
+  await delay(400);
+  buildDemoNums('demo-s2b-nums',[8,1,6,3],[1,3,6,8]);
+  buildDemoBoxes('demo-s2b-boxes',[1,3,6,8]);
+  await delay(400); await waitPause();
+  await speak(`You have seen BOTH ways now with DIFFERENT numbers! You are doing so incredibly well! Now it is YOUR turn!`,4);
+}
+
+// ══════════════════════════════════════════════════════
+// ACTIVITY SYSTEM
+// ══════════════════════════════════════════════════════
+const ACTIVITIES=[
+  { nums:[3,6,1,4], dir:'biggest',  correct:[6,4,3,1], label:'⬇️ Order from BIGGEST to smallest' },
+  { nums:[7,5,2,4], dir:'smallest', correct:[2,4,5,7], label:'⬆️ Order from SMALLEST to biggest' },
+  { nums:[6,1,8,3], dir:'smallest', correct:[1,3,6,8], label:'⬆️ Order from SMALLEST to biggest' },
+  { nums:[2,8,4,6], dir:'biggest',  correct:[8,6,4,2], label:'⬇️ Order from BIGGEST to smallest' },
+];
+
+let actResolve=null;
+
+async function sc5(){
+  goScene(5); await delay(300);
+  await speak(`Wonderful! Now it is YOUR turn! I have four exercises for you. Use your fingers to count each time — remember, always count on your fingers to find the right number!`,5);
+  await delay(400); await waitPause();
+
+  for(let i=0;i<ACTIVITIES.length;i++){
+    await waitPause();
+    await runActivity(ACTIVITIES[i], i);
+    await delay(400); await waitPause();
+  }
+
+  await speak(`You have finished ALL four exercises! You are an absolute superstar at ordering numbers! I am SO proud of you!`,5);
+  launchConfetti();
+}
+
+async function runActivity(act, idx){
+  const container=document.getElementById('act-container');
+  container.innerHTML='';
+
+  // Direction badge
+  const badge=document.createElement('div');
+  badge.style.cssText=`font-family:'Fredoka One',cursive;font-size:clamp(15px,2vw,20px);
+    padding:7px 18px;border-radius:50px;color:#fff;margin-bottom:10px;text-align:center;
+    background:${act.dir==='biggest'?'linear-gradient(135deg,#C0392B,#E74C3C)':'linear-gradient(135deg,#1565C0,#1976D2)'};
+    box-shadow:0 4px 14px rgba(0,0,0,0.18);`;
+  badge.textContent=act.label;
+  container.appendChild(badge);
+
+  // Tappable number tiles
+  const tilesRow=document.createElement('div');
+  tilesRow.className='numbers-row';
+  tilesRow.style.marginBottom='8px';
+  container.appendChild(tilesRow);
+
+  // Answer boxes
+  const boxRow=document.createElement('div');
+  boxRow.className='answer-row';
+  const labels=['1st','2nd','3rd','4th'];
+  const boxes=[];
+  for(let i=0;i<4;i++){
+    const w=document.createElement('div'); w.className='ans-wrap';
+    const b=document.createElement('div'); b.className='ans-box';
+    const lbl=document.createElement('div'); lbl.className='ans-label'; lbl.textContent=labels[i];
+    w.appendChild(b); w.appendChild(lbl); boxRow.appendChild(w);
+    boxes.push(b);
+  }
+  container.appendChild(boxRow);
+
+  // Announce
+  const dirWord=act.dir==='biggest'?'biggest to smallest':'smallest to biggest';
+  await speak(`Exercise ${idx+1}! Order these numbers from ${dirWord}: ${act.nums.join(', ')}. Use your fingers and tap the ${act.dir==='biggest'?'biggest':'smallest'} number first!`,5);
+  await delay(200);
+
+  // Shuffle tiles (show in random order)
+  const shuffled=[...act.nums].sort(()=>Math.random()-.5);
+  const tileEls={};
+  shuffled.forEach(n=>{
+    const t=document.createElement('div');
+    t.className='act-tile tappable';
+    t.style.background=`linear-gradient(145deg,${colorFor(n)},${colorFor(n)}bb)`;
+    t.textContent=n;
+    t.id=`atile_${idx}_${n}`;
+    tilesRow.appendChild(t);
+    tileEls[n]=t;
+  });
+
+  // Wait for child to tap all 4 in correct order
+  let nextSlot=0;
+  await new Promise(resolve=>{
+    actResolve=resolve;
+
+    shuffled.forEach(n=>{
+      const tile=tileEls[n];
+      tile.onclick=async()=>{
+        if(tile.classList.contains('used')) return;
+        const expected=act.correct[nextSlot];
+
+        if(n===expected){
+          // ✅ Correct
+          ding();
+          tile.classList.add('used');
+          // Animate into box
+          const box=boxes[nextSlot];
+          box.textContent=n;
+          box.classList.add('filled');
+          nextSlot++;
+
+          if(nextSlot===4){
+            // All done!
+            await speak(`Excellent! Perfect! You ordered all four numbers correctly! Well done!`,5);
+            resolve();
+          }
+        } else {
+          // ❌ Wrong
+          beep();
+          tile.classList.add('wrong-shake');
+          setTimeout(()=>tile.classList.remove('wrong-shake'),500);
+          const hint=act.dir==='biggest'
+            ?`Not quite! Remember to use your fingers and find the BIGGEST number first! Ask Mum or Dad to help you count on your fingers.`
+            :`Not quite! Remember to use your fingers and find the SMALLEST number first! Ask Mum or Dad to help you count on your fingers.`;
+          await speak(hint,5);
+        }
+      };
+    });
+  });
+  actResolve=null;
+}
+
+async function sc6(){
+  goScene(6); await delay(300);
+  await speak(`YOU DID IT! You have learned to order numbers from biggest to smallest AND from smallest to biggest! I am SO, SO proud of you! You are a true number superstar! Remember — always use your fingers to count. They are your best tool!`,6);
+  await delay(700); await waitPause();
+  await speak(`And to Mum and Dad — please keep practising this with your child every day until they can do it all by themselves without using their fingers. Practice makes perfect!`,6);
+}
+
+// ══════════════════════════════════════════════════════
+// MAIN FLOW
+// ══════════════════════════════════════════════════════
+async function startVideo(){
+  if(playing) return;
+  unlockSpeech();
+  playing=true;
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('btn-pause').style.display='inline-flex';
+  await runFrom(0);
+}
+async function runFrom(start){
+  for(let sc=start;sc<7;sc++){
+    if(!playing) return;
+    await waitPause();
+    if(sc===0)      await sc0();
+    else if(sc===1) await sc1();
+    else if(sc===2) await sc2();
+    else if(sc===3) await sc3();
+    else if(sc===4) await sc4();
+    else if(sc===5) await sc5();
+    else if(sc===6) await sc6();
+    if(!playing) return;
+    await delay(300);
+  }
+  if(playing){
+    document.getElementById('btn-fb').style.display='inline-flex';
+    document.getElementById('btn-replay').style.display='inline-flex';
+    document.getElementById('btn-pause').style.display='none';
+    playing=false;
+  }
+}
+async function replayVideo(){
+  stopSpeech(); playing=false; paused=false;
+  document.getElementById('btn-fb').style.display='none';
+  document.getElementById('btn-replay').style.display='none';
+  document.getElementById('btn-pause').textContent='⏸ Pause';
+  await delay(300); startVideo();
+}
+
+// ══════════════════════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════════════════════
+function launchConfetti(){
+  const cols=['#A29BFE','#FFD700','#E74C3C','#27AE60','#3498DB','#FF6B6B'];
+  for(let i=0;i<65;i++){
+    const p=document.createElement('div'); p.className='cparticle';
+    p.style.cssText=`left:${Math.random()*100}%;top:-20px;
+      background:${cols[i%cols.length]};
+      width:${7+Math.random()*11}px;height:${7+Math.random()*11}px;
+      border-radius:${Math.random()>.5?'50%':'3px'};
+      animation-delay:${Math.random()*1.8}s;
+      animation-duration:${2+Math.random()*1.6}s;`;
+    document.body.appendChild(p);
+  }
+  setTimeout(()=>document.querySelectorAll('.cparticle').forEach(p=>p.remove()),6000);
+}
+
+// ══════════════════════════════════════════════════════
+// FEEDBACK
+// ══════════════════════════════════════════════════════
+function openFB(){
+  document.getElementById('fb-overlay').classList.add('open');
+  document.getElementById('fb-thanks').style.display='none';
+  document.getElementById('fb-date').value=new Date().toISOString().slice(0,10);
+  document.querySelectorAll('.fb-star').forEach(st=>{
+    st.onclick=()=>{
+      starRating=parseInt(st.dataset.v);
+      document.querySelectorAll('.fb-star').forEach((s,i)=>s.classList.toggle('on',i<starRating));
+    };
+  });
+}
+function closeFB(){ document.getElementById('fb-overlay').classList.remove('open'); }
+function sendFB(){
+  const child=document.getElementById('fb-child').value.trim();
+  const parent=document.getElementById('fb-parent').value.trim();
+  const date=document.getElementById('fb-date').value;
+  const completion=document.getElementById('fb-completion').value;
+  const strategy=document.getElementById('fb-strategy').value;
+  const note=document.getElementById('fb-note').value.trim();
+  const stars=starRating?'⭐'.repeat(starRating)+` (${starRating}/5)`:'Not rated';
+  const msg=`📋 *Ordering Numbers Feedback — Balmoral Primary*\n`+
+    `👦 Child: ${child||'(not given)'}\n👤 Parent: ${parent||'(not given)'}\n`+
+    `📅 Date: ${date||'(not given)'}\n📚 Lesson: Ordering Numbers – Grade 1\n`+
+    `🏁 Completion: ${completion||'(not selected)'}\n`+
+    `⭐ Understanding: ${stars}\n🖐️ Used fingers: ${strategy||'(not selected)'}\n`+
+    (note?`💬 Comments: ${note}`:'');
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+  document.getElementById('fb-thanks').style.display='block';
+  document.querySelector('.fb-btns').style.display='none';
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+const style=document.createElement('style');
+style.textContent='@keyframes spin-in{from{transform:scale(0) rotate(-180deg);}to{transform:scale(1) rotate(0);}}';
+document.head.appendChild(style);
+injectFaces();
+</script>
+</body>
+</html>
